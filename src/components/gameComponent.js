@@ -21,10 +21,12 @@ const theme = createTheme();
 
 export default function GameComponent({ socket }) {
     let [guess, setGuess] = useState("")
+    let [loading, setLoading] = useState(false)
     let [gameOver, setGameOver] = useState(false)
     let [winner, setWinner] = useState("")
     let [currentPlayer, setCurrentPlayer] = useState()
     let [rows, setRows] = useState([])
+    
 
     useEffect(() => {
         socket.on('game-over', (msg) => {
@@ -34,6 +36,7 @@ export default function GameComponent({ socket }) {
 
         socket.on('result', (data) => {
             setRows((p) => [...p, data])
+            setLoading(false)
             if (data["dead"] === 5) {
                 socket.emit("game-over", {winner: socket.id})
             }
@@ -95,10 +98,12 @@ export default function GameComponent({ socket }) {
                     <Grid item xs={12} sm={6}>
                         {currentPlayer ? <LoadingButton
                             fullWidth
+                            disabled={loading}
                             variant="contained"
                             sx={{ mt: 3, mb: 2 }}
                             onClick={
                                 () => {
+                                    setLoading(true)
                                     socket.emit("guess", guess)
                                 }}
                         >
