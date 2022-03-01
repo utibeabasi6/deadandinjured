@@ -94,13 +94,14 @@ export default function HomePage(params) {
                                         fullWidth
                                         variant="contained"
                                         sx={{ mt: 3, mb: 2 }}
+                                        style={{marginLeft: 16}}
                                         onClick={
                                             () => {
                                                 socket.emit("create-room", { username: name, number: secretNumber })
                                                 setLoading(true)
                                             }}
                                     >
-                                        Create a new game
+                                        New game
                                     </LoadingButton>
                                     <Grid item xs={12}>
                                         <TextField
@@ -135,6 +136,6 @@ export default function HomePage(params) {
                 </ThemeProvider>
             } </div>
     } else {
-        return <GameComponent socket={socket} />
+        return <GameComponent socket={socket} code={code === ""? joinCode : code} secretCode={secretNumber} />
     }
 }

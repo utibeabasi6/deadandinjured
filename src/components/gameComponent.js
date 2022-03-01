@@ -12,21 +12,62 @@ import { Box, Container, CssBaseline, TextField, Grid, Alert, AlertTitle } from 
 
 function validateSecretNumber(secretNumber) {
     let set = new Set(secretNumber)
-    let arr  = Array.from(set)
-    console.log(secretNumber);
+    let arr = Array.from(set)
     return arr.length === 5
+}
+
+function updateState(code, rows, currentPlayer, secretCode) {
+    localStorage.setItem("data", JSON.stringify({ code, rows, currentPlayer, secretCode }))
 }
 
 const theme = createTheme();
 
-export default function GameComponent({ socket }) {
+export default function GameComponent({ socket, code, secretCode }) {
+    let data = JSON.parse(localStorage.getItem("data"))
     let [guess, setGuess] = useState("")
     let [loading, setLoading] = useState(false)
     let [gameOver, setGameOver] = useState(false)
     let [winner, setWinner] = useState("")
-    let [currentPlayer, setCurrentPlayer] = useState()
-    let [rows, setRows] = useState([])
-    
+    let [currentPlayer, setCurrentPlayer] = useState(() => {
+        if (data) {
+            let prevCode = data["code"]
+            if (prevCode === code) {
+                return data["currentPlayer"]
+            }else{
+                return false
+            }
+        } else {
+            return false
+        }
+    })
+    let [rows, setRows] = useState(() => {
+        if (data) {
+            let prevCode = data["code"]
+            if (prevCode === code) {
+                return data["rows"]
+            } else {
+                return []
+            }
+        } else {
+            return []
+        }
+    }
+    )
+
+    if (data) {
+        let prevCode = data["code"]
+        if (prevCode === code) {
+            let prevSecretCode = data['secretCode']
+            if (prevSecretCode !== secretCode){
+                socket.emit('update-secret-number', prevSecretCode)
+                localStorage.setItem("data", JSON.stringify({...data, secretCode: prevSecretCode}))
+            }
+
+            
+        } 
+    }
+    console.log(data);
+
 
     useEffect(() => {
         socket.on('game-over', (msg) => {
@@ -38,13 +79,14 @@ export default function GameComponent({ socket }) {
             setRows((p) => [...p, data])
             setLoading(false)
             if (data["dead"] === 5) {
-                socket.emit("game-over", {winner: socket.id})
+                socket.emit("game-over", { winner: socket.id })
             }
         })
 
         socket.on("next-player", (id) => {
             setCurrentPlayer(socket.id !== id)
         })
+
 
     }, [socket])
     return <ThemeProvider theme={theme}>
@@ -105,6 +147,7 @@ export default function GameComponent({ socket }) {
                                 () => {
                                     setLoading(true)
                                     socket.emit("guess", guess)
+                                    updateState(code, rows, currentPlayer, secretCode)
                                 }}
                         >
                             Check Guess
@@ -120,7 +163,9 @@ export default function GameComponent({ socket }) {
                     <Grid item xs={12}>
                         {currentPlayer ? <Alert severity="success">You can play now!</Alert> : <Alert severity="info">Waiting for other player!</Alert>}
                     </Grid>
-                </Grid> : <Alert style={{ marginTop: 40 }} onClose={() => { window.location.reload() }} severity="success">
+                </Grid> : <Alert style={{ marginTop: 40 }} onClose={() => {
+                    localStorage.removeItem("data")
+                    window.location.reload() }} severity="success">
                     <AlertTitle>Game Over</AlertTitle>
                     {winner["winner"]} won! - {winner["winner"]}'s last guess was {winner["guess"]}
                 </Alert>}
